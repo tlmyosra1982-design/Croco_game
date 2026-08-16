@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#170b2f">
+<title>YOSRA Maze — Croco Adventure</title>
+<style>
+:root{
+  --bg:#170b2f;--panel:#24104a;--panel2:#321568;--pink:#ff4f9a;--gold:#ffd43b;
+  --green:#73d13d;--cyan:#44c8ff;--text:#fff;--muted:#d7cbed;--danger:#ff5d6c;
+  --cell:min(6.2vw,34px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:radial-gradient(circle at 50% 0,#32165f 0,#170b2f 48%,#0c061a 100%);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+body{display:flex;justify-content:center}
+button{font:inherit;border:0;color:#fff;cursor:pointer}
+.app{width:min(980px,100%);padding:14px 12px 28px}
+.header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.logo{font-weight:1000;font-size:clamp(26px,6vw,46px);letter-spacing:1px;text-shadow:0 4px 0 #0007}
+.logo span:nth-child(1){color:#ff4f8f}.logo span:nth-child(2){color:#ffd43b}.logo span:nth-child(3){color:#7bdc4b}.logo span:nth-child(4){color:#8b68ff}.logo span:nth-child(5){color:#fff}
+.badge{background:linear-gradient(135deg,#3b1a70,#1b0c39);border:1px solid #7650b8;border-radius:18px;padding:8px 12px;font-weight:800;color:#ffe77a;font-size:12px}
+.screen{display:none}.screen.active{display:block}
+.card{background:linear-gradient(145deg,#2a1253,#170b31);border:1px solid #68459b;border-radius:24px;box-shadow:0 14px 40px #0007}
+.start{padding:24px;text-align:center}
+.croco{font-size:88px;filter:drop-shadow(0 8px 0 #0005);animation:bob 2s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-7px) rotate(-2deg)}}
+h1{margin:5px 0 2px;font-size:clamp(28px,8vw,54px)}
+.subtitle{color:#f2dfff;font-weight:700;margin:0 0 18px}
+.play{background:linear-gradient(180deg,#8be94b,#48b922);padding:15px 34px;border-radius:18px;font-weight:1000;font-size:22px;box-shadow:0 7px 0 #277b14;margin:10px 0 20px}
+.play:active,.action:active,.lang:active{transform:translateY(2px)}
+.languages{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.lang{background:#251046;border:1px solid #68459b;border-radius:14px;padding:10px 5px;min-height:58px;font-weight:800;font-size:12px}
+.lang small{display:block;color:#bca9db;font-size:9px;margin-top:2px}
+.lang.selected{outline:2px solid var(--gold);background:#3b1b67}
+.lang .flag{font-size:20px;display:block;margin-bottom:2px}
+.start-note{margin-top:18px;color:var(--muted);font-size:12px}
+
+.topbar{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;margin-bottom:10px}
+.level{font-weight:1000;font-size:clamp(22px,6vw,36px);text-align:center}
+.stat{background:#24104a;border:1px solid #5b3a8d;border-radius:14px;padding:7px 9px;text-align:center;font-size:11px;font-weight:800}
+.stat b{display:block;font-size:18px;color:#fff}
+.stat.time b{color:var(--gold)} .stat.xp b{color:var(--green)}
+.game-layout{display:grid;grid-template-columns:minmax(0,1fr) 170px;gap:12px}
+.maze-card{padding:10px;position:relative}
+.instruction{text-align:center;background:#fff1c9;color:#25132f;border-radius:14px;padding:9px;font-weight:900;margin-bottom:9px;font-size:13px}
+.maze-wrap{display:flex;justify-content:center;overflow:hidden}
+canvas{display:block;touch-action:none;border-radius:16px;background:#f1d49c;max-width:100%;height:auto}
+.sidebar{display:flex;flex-direction:column;gap:10px}
+.sidebox{padding:13px;background:#24104a;border:1px solid #5b3a8d;border-radius:18px;text-align:center}
+.sidebox .big{font-size:24px;font-weight:1000}
+.hearts{font-size:24px;letter-spacing:2px}
+.action{width:100%;padding:12px;border-radius:15px;font-weight:1000;background:linear-gradient(180deg,#8c58e8,#5c28b2);box-shadow:0 5px 0 #35166c}
+.action.hint{background:linear-gradient(180deg,#8be94b,#48b922);box-shadow:0 5px 0 #277b14}
+.action.sound{background:linear-gradient(180deg,#45cfff,#1777b5);box-shadow:0 5px 0 #0d4f78}
+.help{text-align:center;color:#cdbbe8;font-size:11px;margin-top:8px}
+.message{margin-top:10px;text-align:center;background:#24104a;border:1px solid #5b3a8d;border-radius:16px;padding:10px;font-weight:800}
+.bottomlangs{margin-top:12px}.bottomlangs .languages{grid-template-columns:repeat(5,1fr)}
+.overlay{position:fixed;inset:0;background:#090313cc;display:none;align-items:center;justify-content:center;padding:18px;z-index:20}
+.overlay.show{display:flex}
+.result{width:min(430px,100%);padding:24px;text-align:center}
+.result .emoji{font-size:70px}.result h2{font-size:32px;margin:4px 0}.result p{color:var(--muted)}
+.result-row{display:flex;justify-content:center;gap:12px;margin:15px 0}
+.result-pill{background:#1c0c37;border:1px solid #5b3a8d;border-radius:14px;padding:10px 16px;font-weight:900}
+.result-actions{display:grid;gap:9px}
+.back{background:#3b2756!important;box-shadow:none!important}
+.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(20px);background:#0d061c;border:1px solid #7a56a8;padding:10px 15px;border-radius:14px;opacity:0;pointer-events:none;transition:.25s;z-index:30;font-weight:800}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ---------- YOSRA LUXURY CARTRIDGE SKIN v1.1 ---------- */
+
+/* ---------- AUDIO & TOUCH DELUXE v1.3 ---------- */
+.voice{background:linear-gradient(180deg,#e0a84a,#9b5b18)!important;box-shadow:0 6px 0 #61370d!important;border-color:#ffd778!important}
+@media(max-width:700px){.voice{grid-column:span 2}}
+/* ---------- CROCO DELUXE v1.2 ---------- */
+.luxury-maze{position:relative}
+.luxury-maze .instruction{
+  background:linear-gradient(90deg,#fff4cf,#ffe9a2,#fff4cf);
+  border:1px solid #ffd43b99;
+  box-shadow:0 4px 16px #0004;
+}
+.result .emoji{filter:drop-shadow(0 6px 12px #0006)}
+
+body{
+  background:
+    radial-gradient(circle at 15% 10%,#5b2a8e55 0 12%,transparent 30%),
+    radial-gradient(circle at 85% 15%,#b26aff22 0 10%,transparent 28%),
+    linear-gradient(135deg,#0b0519 0%,#1a0a36 45%,#0d061d 100%);
+}
+.app{max-width:1120px}
+.luxury-header{align-items:flex-end;padding:4px 4px 12px}
+.brand-lockup{position:relative;padding-left:8px}
+.crown{position:absolute;left:26px;top:-14px;color:#ffd43b;font-size:26px;text-shadow:0 3px 8px #000}
+.logo{font-size:clamp(30px,6vw,48px);line-height:.9;letter-spacing:1.5px}
+.logo em{font-style:normal;color:#fff;font-size:.58em;letter-spacing:2px;margin-left:3px}
+.brand-line{font-size:9px;letter-spacing:2.5px;color:#d7c4f5;margin:7px 0 0 7px;font-weight:900}
+.badge{
+  background:linear-gradient(145deg,#351667,#17092f);
+  border:1px solid #a76df0;
+  box-shadow:inset 0 1px #ffffff33,0 8px 24px #0008;
+  color:#ffe36a;
+}
+.card{
+  background:linear-gradient(145deg,#2a1051eF,#10061fF2);
+  border:1px solid #7043a6;
+  box-shadow:0 18px 55px #0009,inset 0 1px #ffffff12;
+}
+.luxury-start{
+  position:relative;overflow:hidden;
+  padding:28px 18px 20px;
+  background:
+    radial-gradient(circle at 50% 25%,#7d3fb844 0 8%,transparent 30%),
+    linear-gradient(145deg,#29104d,#0d061c);
+}
+.luxury-start:before,.luxury-start:after{
+  content:"✦";position:absolute;color:#ffd43b;font-size:22px;opacity:.7
+}
+.luxury-start:before{left:8%;top:15%}.luxury-start:after{right:8%;top:28%}
+.hero-croco{height:125px;display:flex;align-items:center;justify-content:center;position:relative}
+.croco-glow{
+  font-size:102px;filter:drop-shadow(0 10px 0 #0006) drop-shadow(0 0 20px #73d13d66);
+  animation:bob 2s ease-in-out infinite;
+}
+.sparkle{position:absolute;color:#ffd43b;font-size:24px;animation:twinkle 1.5s infinite}
+.s1{left:32%;top:16%}.s2{right:30%;top:34%;animation-delay:.35s}.s3{right:36%;bottom:6%;animation-delay:.7s}
+@keyframes twinkle{50%{opacity:.2;transform:scale(.7) rotate(20deg)}}
+.luxury-ribbon{
+  display:inline-block;padding:7px 18px;border-radius:999px;
+  background:linear-gradient(90deg,#7a36bb,#bd58c9,#7a36bb);
+  border:1px solid #e7a5ff66;box-shadow:0 7px 20px #0006,inset 0 1px #fff4;
+  font-size:11px;font-weight:1000;letter-spacing:1px;color:#fff;
+}
+.luxury-start h1{margin:10px 0 3px;text-shadow:0 5px 0 #0007,0 0 18px #b35aff55}
+.luxury-game .topbar{margin-bottom:12px}
+.level{
+  color:#fff;text-shadow:0 3px 0 #0008;
+}
+.luxury-maze{padding:12px;background:linear-gradient(145deg,#2d1355,#120821)}
+.luxury-maze:before{
+  content:"";display:block;height:4px;border-radius:99px;margin:-2px auto 9px;
+  width:70%;background:linear-gradient(90deg,transparent,#ffd43b,transparent);
+  opacity:.8;
+}
+.luxury-game canvas{
+  border:2px solid #8d5bc0;
+  box-shadow:0 12px 35px #0008,0 0 0 4px #160a2b,0 0 28px #7e4db455;
+}
+.sidebar .sidebox{
+  background:linear-gradient(145deg,#241045,#11071f);
+  border:1px solid #62418f;
+  box-shadow:inset 0 1px #fff1,0 8px 20px #0005;
+}
+.sidebar .sidebox:first-child{border-color:#a66af0}
+.action{
+  border:1px solid #8c5bd0;
+  box-shadow:0 6px 0 #35166c,0 0 18px #8b4be522;
+}
+.action.hint{
+  border-color:#8edb53;
+  box-shadow:0 6px 0 #277b14,0 0 18px #73d13d22;
+}
+.action.sound{border-color:#4bbfe9}
+.language-panel{
+  margin-top:14px;padding:14px 12px 12px;border-radius:22px;
+  background:linear-gradient(145deg,#1b0b37,#0c0519);
+  border:1px solid #5e3a8a;
+  box-shadow:0 14px 35px #0007,inset 0 1px #fff1;
+}
+.language-title{text-align:center;color:#fff;font-weight:1000;letter-spacing:1px;font-size:14px;margin-bottom:10px}
+.language-panel .languages{gap:10px}
+.language-panel .lang{
+  background:linear-gradient(145deg,#24113f,#120920);
+  border:1px solid #6e4c9c;
+  min-height:62px;
+  box-shadow:inset 0 1px #fff1,0 6px 16px #0005;
+}
+.language-panel .lang.selected{
+  border-color:#ffd43b;outline:2px solid #ffd43b33;
+  background:linear-gradient(145deg,#3b205d,#17102a);
+}
+.footer-brand{text-align:center;color:#cdbbe8;font-size:10px;font-weight:800;letter-spacing:.8px;margin-top:10px}
+@media(max-width:700px){
+  .luxury-header{align-items:center}
+  .badge{font-size:9px;padding:7px 8px}
+  .brand-line{font-size:7px}
+  .language-panel .languages{gap:5px}
+}
+
+@media(max-width:700px){
+  .app{padding:10px 8px 22px}
+  .game-layout{grid-template-columns:1fr}
+  .sidebar{display:grid;grid-template-columns:repeat(4,1fr)}
+  .sidebox{padding:8px}.sidebox .big{font-size:18px}.hearts{font-size:18px}
+  .action{padding:10px;font-size:12px}
+  .action.hint{grid-column:span 2}.action.sound{grid-column:span 2}
+  .topbar{grid-template-columns:1fr 1fr 1fr}.stat{padding:6px}
+  .languages{grid-template-columns:repeat(5,1fr)}
+  .lang{font-size:9px;padding:7px 2px}.lang small{display:none}.lang .flag{font-size:16px}
+}
+@media(max-width:420px){
+  .sidebar{grid-template-columns:repeat(2,1fr)}
+  .maze-card{padding:7px}
+  .instruction{font-size:11px}
+  .languages{gap:4px}
+}
+
+/* ---------- YOSRA UNIVERSAL LISTEN CONTROL v1.4 ---------- */
+.instruction-row{
+  display:flex;
+  align-items:stretch;
+  gap:8px;
+  margin-bottom:9px;
+}
+.instruction-row .instruction{
+  flex:1;
+  margin:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.listen-btn{
+  min-width:112px;
+  min-height:48px;
+  padding:10px 14px;
+  border-radius:14px;
+  border:1px solid #ffd76a;
+  color:#fff;
+  font-weight:1000;
+  background:linear-gradient(180deg,#d9a63f,#8e5216);
+  box-shadow:0 5px 0 #57300b,0 0 18px #ffd43b33,inset 0 1px #fff7;
+  touch-action:manipulation;
+}
+.listen-btn:active{transform:translateY(2px);box-shadow:0 3px 0 #57300b}
+.listen-btn.speaking{
+  background:linear-gradient(180deg,#79dfff,#237eb2);
+  border-color:#b8efff;
+  box-shadow:0 5px 0 #14516f,0 0 22px #44c8ff66;
+}
+@media(max-width:520px){
+  .instruction-row{flex-direction:column}
+  .listen-btn{width:100%;min-height:50px}
+}
+
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header luxury-header">
+    <div class="brand-lockup">
+      <div class="crown">♛</div>
+      <div class="logo"><span>Y</span><span>O</span><span>S</span><span>R</span><span>A</span> <em>MAZE</em></div>
+      <div class="brand-line">PLAY • LEARN • CREATE</div>
+    </div>
+    <div class="badge">🐊 CROCO ADVENTURE</div>
+  </div>
+
+  <section id="startScreen" class="screen active card start luxury-start">
+    <div class="hero-croco"><div class="croco-glow">🐊</div><div class="sparkle s1">✦</div><div class="sparkle s2">✧</div><div class="sparkle s3">✦</div></div>
+    <div class="luxury-ribbon">⭐ CROCO ADVENTURE ⭐</div>
+    <h1 id="startTitle">YOSRA MAZE</h1>
+    <p class="subtitle" id="startSub">Croco Adventure • Play • Learn • Create</p>
+    <button class="play" id="playBtn">▶ PLAY</button>
+    <div class="languages" id="startLangs"></div>
+    <div class="start-note" id="startNote">One game • Five languages • Offline</div>
+  </section>
+
+  <section id="gameScreen" class="screen luxury-game">
+    <div class="topbar">
+      <div class="stat time">⏱️ <b id="timeStat">10</b><span id="secLabel">SEC</span></div>
+      <div class="level" id="levelTitle">LEVEL 01</div>
+      <div class="stat xp">⭐ <b id="xpStat">0</b> XP</div>
+    </div>
+
+    <div class="game-layout">
+      <div class="card maze-card luxury-maze">
+        <div class="instruction-row">
+          <div class="instruction" id="instruction">🐊 Guide the ball into Croco’s mouth!</div>
+          <button class="listen-btn" id="listenBtn" type="button" aria-label="Listen">🔊 <span>LISTEN</span></button>
+        </div>
+        <div class="maze-wrap"><canvas id="mazeCanvas"></canvas></div>
+        <div class="message" id="message">🐊 I'm hungry! Can you bring the ball to me?</div>
+      </div>
+      <aside class="sidebar">
+        <div class="sidebox"><div>❤️</div><div class="hearts" id="hearts">❤️❤️❤️</div></div>
+        <div class="sidebox"><div id="scoreLabel">SCORE</div><div class="big" id="scoreStat">0</div></div>
+        <div class="sidebox"><div id="levelLabel">LEVEL</div><div class="big" id="miniLevel">01</div></div>
+        <button class="action" id="restartBtn">↻ RESTART</button>
+        <button class="action hint" id="hintBtn">💡 HINT</button>
+        <button class="action sound" id="soundBtn">🔊 SOUND</button>
+        <button class="action voice" id="voiceBtn">🗣️ SPEAK</button>
+        <div class="help" id="helpText">Swipe the ball with your finger.</div>
+      </aside>
+    </div>
+
+    <div class="language-panel">
+      <div class="language-title">✦ CHOOSE YOUR LANGUAGE ✦</div>
+      <div class="bottomlangs"><div class="languages" id="gameLangs"></div></div>
+    </div>
+    <div class="footer-brand">♥ YOSRA • One Game • Five Languages • A Kinder World ♥</div>
+  </section>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="result card">
+    <div class="emoji" id="resultEmoji">🎉</div>
+    <h2 id="resultTitle">LEVEL COMPLETE!</h2>
+    <p id="resultText">Yummy! Croco is happy.</p>
+    <div class="result-row">
+      <div class="result-pill">⭐ <span id="resultScore">0</span></div>
+      <div class="result-pill">XP <span id="resultXP">0</span></div>
+    </div>
+    <div class="result-actions">
+      <button class="play" id="nextBtn">NEXT LEVEL ▶</button>
+      <button class="action back" id="menuBtn">⌂ MENU</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+"use strict";
+
+const LANGS = {
+  fa:{flag:"🇮🇷",name:"فارسی",native:"PERSIAN",dir:"rtl",
+      play:"بازی",startSub:"ماجراجویی کروکو • بازی • یادگیری • خلاقیت",
+      startNote:"یک بازی • پنج زبان • کاملاً آفلاین",instruction:"توپ را به دهان کروکودیل هدایت کن!",
+      hungry:"🐊 گرسنه‌ام! می‌توانی توپ را به من برسانی؟",sec:"ثانیه",score:"امتیاز",level:"مرحله",
+      restart:"↻ شروع دوباره",hint:"💡 راهنما",sound:"🔊 صدا",help:"با انگشت توپ را هدایت کن.",
+      complete:"مرحله کامل شد!",win:"🎉 عالی بود! کروکو خوشحال است.",next:"مرحله بعد ▶",menu:"⌂ منو",
+      fail:"زمان تمام شد!",tryAgain:"دوباره امتحان کن!",out:"از مسیر خارج شدی!",needLives:"جان‌ها تمام شد!",
+      toastHint:"مسیر پیشنهادی با نور مشخص شد.",soundOn:"صدا روشن",soundOff:"صدا خاموش"},
+  ar:{flag:"🇸🇦",name:"العربية",native:"ARABIC",dir:"rtl",
+      play:"العب",startSub:"مغامرة كروكو • العب • تعلّم • ابتكر",
+      startNote:"لعبة واحدة • خمس لغات • تعمل دون إنترنت",instruction:"وجّه الكرة إلى فم التمساح!",
+      hungry:"🐊 أنا جائع! هل يمكنك إيصال الكرة إليّ؟",sec:"ثانية",score:"النقاط",level:"المستوى",
+      restart:"↻ إعادة",hint:"💡 تلميح",sound:"🔊 الصوت",help:"حرّك الكرة بإصبعك.",
+      complete:"اكتمل المستوى!",win:"🎉 رائع! كروكو سعيد.",next:"المستوى التالي ▶",menu:"⌂ القائمة",
+      fail:"انتهى الوقت!",tryAgain:"حاول مرة أخرى!",out:"خرجت من المسار!",needLives:"انتهت الأرواح!",
+      toastHint:"تم إظهار المسار المقترح.",soundOn:"الصوت يعمل",soundOff:"الصوت متوقف"},
+  en:{flag:"🇬🇧",name:"ENGLISH",native:"ENGLISH",dir:"ltr",
+      play:"▶ PLAY",startSub:"Croco Adventure • Play • Learn • Create",
+      startNote:"One game • Five languages • Fully offline",instruction:"Guide the ball to the crocodile’s mouth!",
+      hungry:"🐊 I'm hungry! Can you bring the ball to me?",sec:"SEC",score:"SCORE",level:"LEVEL",
+      restart:"↻ RESTART",hint:"💡 HINT",sound:"🔊 SOUND",help:"Swipe the ball with your finger.",
+      complete:"LEVEL COMPLETE!",win:"🎉 Great job! Croco is happy.",next:"NEXT LEVEL ▶",menu:"⌂ MENU",
+      fail:"TIME'S UP!",tryAgain:"Try again!",out:"You left the path!",needLives:"No lives left!",
+      toastHint:"Suggested path is glowing.",soundOn:"Sound on",soundOff:"Sound off"},
+  de:{flag:"🇩🇪",name:"DEUTSCH",native:"GERMAN",dir:"ltr",
+      play:"▶ SPIELEN",startSub:"Croco-Abenteuer • Spielen • Lernen • Gestalten",
+      startNote:"Ein Spiel • Fünf Sprachen • Komplett offline",instruction:"Führe den Ball zum Maul des Krokodils!",
+      hungry:"🐊 Ich habe Hunger! Bringst du den Ball zu mir?",sec:"SEK",score:"PUNKTE",level:"LEVEL",
+      restart:"↻ NEUSTART",hint:"💡 HINWEIS",sound:"🔊 TON",help:"Wische mit dem Finger über den Ball.",
+      complete:"LEVEL GESCHAFFT!",win:"🎉 Super! Croco freut sich.",next:"NÄCHSTES LEVEL ▶",menu:"⌂ MENÜ",
+      fail:"ZEIT ABGELAUFEN!",tryAgain:"Versuch es noch einmal!",out:"Du hast den Weg verlassen!",needLives:"Keine Leben mehr!",
+      toastHint:"Der empfohlene Weg leuchtet.",soundOn:"Ton an",soundOff:"Ton aus"},
+  fr:{flag:"🇫🇷",name:"FRANÇAIS",native:"FRENCH",dir:"ltr",
+      play:"▶ JOUER",startSub:"Aventure Croco • Jouer • Apprendre • Créer",
+      startNote:"Un jeu • Cinq langues • Totalement hors ligne",instruction:"Guide la balle jusqu’à la bouche du crocodile !",
+      hungry:"🐊 J’ai faim ! Peux-tu m’apporter la balle ?",sec:"SEC",score:"SCORE",level:"NIVEAU",
+      restart:"↻ REJOUER",hint:"💡 INDICE",sound:"🔊 SON",help:"Fais glisser la balle avec ton doigt.",
+      complete:"NIVEAU RÉUSSI !",win:"🎉 Bravo ! Croco est heureux.",next:"NIVEAU SUIVANT ▶",menu:"⌂ MENU",
+      fail:"TEMPS ÉCOULÉ !",tryAgain:"Réessaie !",out:"Tu as quitté le chemin !",needLives:"Plus de vies !",
+      toastHint:"Le chemin conseillé s’allume.",soundOn:"Son activé",soundOff:"Son désactivé"}
+};
+
+const levels = [
+ {size:11, time:10},
+ {size:13, time:12},
+ {size:15, time:14},
+ {size:15, time:12},
+ {size:17, time:14}
+];
+
+let lang = localStorage.getItem("yosraMazeLang") || "en";
+let levelIndex = Number(localStorage.getItem("yosraMazeLevel") || 0);
+let totalXP = Number(localStorage.getItem("yosraMazeXP") || 0);
+let totalScore = Number(localStorage.getItem("yosraMazeScore") || 0);
+let lives = 3, timeLeft=10, timer=null, soundOn=true, gameActive=false;
+let grid=[], ball={r:1,c:1}, goal={r:1,c:1}, path=[], hintTimer=null;
+let crocoMouth=1, victoryAnimating=false;
+const canvas=document.getElementById("mazeCanvas"), ctx=canvas.getContext("2d");
+let audioCtx=null, speechEnabled=true;
+function speakText(text){
+  if(lang==="fa") return;
+  if(!("speechSynthesis" in window)){
+    toast("🔊 Text-to-Speech is not available on this browser.");
+    return;
+  }
+  try{
+    window.speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text);
+    const voiceLang={
+      en:"en-US", fr:"fr-FR", de:"de-DE", ar:"ar-SA", fa:"fa-IR"
+    }[lang] || "en-US";
+    u.lang=voiceLang;
+    u.rate=.84;
+    u.pitch=1.02;
+    u.volume=1;
+
+    // Prefer a voice matching the selected language when the browser exposes voices.
+    const voices=window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
+    const prefix=voiceLang.split("-")[0].toLowerCase();
+    const match=voices.find(v=>(v.lang||"").toLowerCase().startsWith(prefix));
+    if(match) u.voice=match;
+
+    u.onstart=()=>document.getElementById("listenBtn").classList.add("speaking");
+    u.onend=()=>document.getElementById("listenBtn").classList.remove("speaking");
+    u.onerror=()=>document.getElementById("listenBtn").classList.remove("speaking");
+    window.speechSynthesis.speak(u);
+  }catch(e){
+    toast("🔊 "+t().help);
+  }
+}
+
+function t(){return LANGS[lang]||LANGS.en}
+function applyLanguage(){
+  const L=t();
+  document.documentElement.lang=lang; document.documentElement.dir=L.dir;
+  document.getElementById("playBtn").textContent=L.play;
+  document.getElementById("startSub").textContent=L.startSub;
+  document.getElementById("startNote").textContent=L.startNote;
+  document.getElementById("instruction").textContent=L.instruction;
+  document.getElementById("message").textContent=L.hungry;
+  document.getElementById("secLabel").textContent=L.sec;
+  document.getElementById("scoreLabel").textContent=L.score;
+  document.getElementById("levelLabel").textContent=L.level;
+  document.getElementById("restartBtn").textContent=L.restart;
+  document.getElementById("hintBtn").textContent=L.hint;
+  document.getElementById("soundBtn").textContent=soundOn?"🔊 "+L.soundOn:"🔇 "+L.soundOff;
+  const listenLabel={ar:"استمع!",en:"LISTEN!",de:"HÖR ZU!",fr:"ÉCOUTE!"}[lang]||"LISTEN!";
+  const listenBtn=document.getElementById("listenBtn");
+  if(listenBtn){
+    listenBtn.innerHTML="🔊 <span>"+listenLabel+"</span>";
+    listenBtn.style.display = lang==="fa" ? "none" : "";
+  }
+  const voiceBtn=document.getElementById("voiceBtn");
+  if(voiceBtn){
+    voiceBtn.textContent=lang==="en"?"🗣️ SPEAK":"🗣️ "+L.name;
+    voiceBtn.style.display = lang==="fa" ? "none" : "";
+  }
+  document.getElementById("helpText").textContent=L.help;
+  document.getElementById("nextBtn").textContent=L.next;
+  document.getElementById("menuBtn").textContent=L.menu;
+  renderLangs();
+}
+function renderLangs(){
+  const targets=[document.getElementById("startLangs"),document.getElementById("gameLangs")];
+  targets.forEach(el=>{
+    el.innerHTML="";
+    Object.entries(LANGS).forEach(([k,v])=>{
+      const b=document.createElement("button"); b.className="lang"+(k===lang?" selected":"");
+      b.innerHTML=`<span class="flag">${v.flag}</span>${v.name}<small>${v.native}</small>`;
+      b.onclick=()=>{lang=k;localStorage.setItem("yosraMazeLang",lang);applyLanguage();};
+      el.appendChild(b);
+    });
+  });
+}
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function makeMaze(n){
+  const g=Array.from({length:n},()=>Array(n).fill(1));
+  const dirs=[[2,0],[-2,0],[0,2],[0,-2]];
+  function carve(r,c){
+    g[r][c]=0;
+    shuffle([...dirs]).forEach(([dr,dc])=>{
+      const nr=r+dr,nc=c+dc;
+      if(nr>0&&nr<n-1&&nc>0&&nc<n-1&&g[nr][nc]===1){
+        g[r+dr/2][c+dc/2]=0; carve(nr,nc);
+      }
+    });
+  }
+  carve(1,1);
+  // Add a few openings for variety while keeping the maze playable.
+  const openings=Math.floor(n*0.35);
+  for(let i=0;i<openings;i++){
+    const r=2+Math.floor(Math.random()*(n-3)), c=2+Math.floor(Math.random()*(n-3));
+    if(g[r][c]===1 && ((g[r-1][c]===0&&g[r+1][c]===0)||(g[r][c-1]===0&&g[r][c+1]===0))) g[r][c]=0;
+  }
+  return g;
+}
+function findPath(g,start,end){
+  const q=[start], prev=new Map([[start.r+","+start.c,null]]);
+  const key=(r,c)=>r+","+c;
+  while(q.length){
+    const p=q.shift();
+    if(p.r===end.r&&p.c===end.c) break;
+    [[1,0],[-1,0],[0,1],[0,-1]].forEach(([dr,dc])=>{
+      const nr=p.r+dr,nc=p.c+dc,k=key(nr,nc);
+      if(nr>=0&&nr<g.length&&nc>=0&&nc<g.length&&g[nr][nc]===0&&!prev.has(k)){
+        prev.set(k,p);q.push({r:nr,c:nc});
+      }
+    });
+  }
+  const out=[]; let cur=end;
+  while(cur){out.push(cur);cur=prev.get(key(cur.r,cur.c))}
+  return out.reverse();
+}
+function buildLevel(){
+  const n=levels[levelIndex].size;
+  do{
+    grid=makeMaze(n);
+    ball={r:1,c:1};
+    goal={r:n-2,c:n-2};
+    path=findPath(grid,ball,goal);
+  }while(path.length<Math.floor(n*2));
+  timeLeft=levels[levelIndex].time; lives=3; gameActive=true;
+  clearInterval(timer); clearTimeout(hintTimer);
+  updateUI(); draw();
+  timer=setInterval(()=>{
+    if(!gameActive)return;
+    timeLeft--; updateUI();
+    if(timeLeft<=0) loseLife(t().fail);
+  },1000);
+}
+function updateUI(){
+  document.getElementById("timeStat").textContent=Math.max(0,timeLeft);
+  document.getElementById("xpStat").textContent=totalXP;
+  document.getElementById("scoreStat").textContent=totalScore;
+  document.getElementById("miniLevel").textContent=String(levelIndex+1).padStart(2,"0");
+  document.getElementById("levelTitle").textContent=`${t().level} ${String(levelIndex+1).padStart(2,"0")}`;
+  document.getElementById("hearts").textContent="❤️".repeat(lives)+"🖤".repeat(3-lives);
+}
+function draw(){
+  const n=grid.length, size=Math.min(620, Math.max(280, window.innerWidth-34));
+  canvas.width=size; canvas.height=size;
+  const cell=size/n;
+  ctx.clearRect(0,0,size,size);
+  // floor
+  ctx.fillStyle="#efd19a";ctx.fillRect(0,0,size,size);
+  for(let r=0;r<n;r++)for(let c=0;c<n;c++){
+    if(grid[r][c]===1){
+      const x=c*cell,y=r*cell;
+      const gr=ctx.createLinearGradient(x,y,x+cell,y+cell);
+      gr.addColorStop(0,"#8ee04b");gr.addColorStop(1,"#3d9d20");
+      ctx.fillStyle=gr;ctx.fillRect(x+1,y+1,cell-2,cell-2);
+      ctx.fillStyle="#b7f06a";ctx.globalAlpha=.35;
+      ctx.beginPath();ctx.arc(x+cell*.28,y+cell*.25,cell*.08,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+    }else{
+      ctx.fillStyle="#f4d9a6";ctx.fillRect(c*cell,r*cell,cell,cell);
+    }
+  }
+  // subtle goal glow
+  const gx=(goal.c+.5)*cell,gy=(goal.r+.5)*cell;
+  const rg=ctx.createRadialGradient(gx,gy,2,gx,gy,cell*1.5);
+  rg.addColorStop(0,"#ffe65a99");rg.addColorStop(1,"#ffe65a00");
+  ctx.fillStyle=rg;ctx.fillRect((goal.c-1)*cell,(goal.r-1)*cell,cell*3,cell*3);
+  // Premium vector crocodile goal — no external image required.
+  drawCroco(ctx, gx, gy, cell, crocoMouth);
+
+function drawCroco(ctx,x,y,cell,mouth){
+  const s=Math.max(0.72,Math.min(1.18,cell/34));
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.shadowColor="#0009";ctx.shadowBlur=cell*.25;ctx.shadowOffsetY=cell*.12;
+
+  // head
+  ctx.fillStyle="#74d62f";
+  ctx.beginPath();ctx.ellipse(0,0,cell*1.35,cell*.92,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#9bea4d";
+  ctx.beginPath();ctx.ellipse(cell*.2,-cell*.2,cell*.98,cell*.52,-.05,0,Math.PI*2);ctx.fill();
+
+  // open mouth
+  const open=mouth;
+  ctx.shadowBlur=0;
+  ctx.fillStyle="#74152a";
+  ctx.beginPath();
+  ctx.ellipse(cell*.05,cell*.28,cell*.75,cell*(.43+.24*open),0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#ef5a72";
+  ctx.beginPath();
+  ctx.ellipse(cell*.05,cell*(.48+.08*open),cell*.55,cell*.18,0,0,Math.PI*2);ctx.fill();
+
+  // snout
+  ctx.fillStyle="#88df39";
+  ctx.beginPath();ctx.ellipse(-cell*.52,-cell*.1,cell*.72,cell*.32,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#b2ef63";
+  ctx.beginPath();ctx.arc(-cell*.76,-cell*.12,cell*.12,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(-cell*.38,-cell*.12,cell*.12,0,Math.PI*2);ctx.fill();
+
+  // eyes
+  [-.38,.35].forEach((ex,i)=>{
+    ctx.fillStyle="#a4ec50";ctx.beginPath();ctx.arc(cell*ex,-cell*.63,cell*.27,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(cell*ex,-cell*.66,cell*.19,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="#14121a";ctx.beginPath();ctx.arc(cell*(ex+.035),-cell*.67,cell*.105,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(cell*(ex+.07),-cell*.72,cell*.035,0,Math.PI*2);ctx.fill();
+  });
+
+  // teeth
+  if(open>.15){
+    ctx.fillStyle="#fff7dc";
+    for(let i=-2;i<=2;i++){
+      const tx=cell*(i*.27), ty=cell*(.08+.13*Math.abs(i));
+      ctx.beginPath();ctx.moveTo(tx-cell*.075,ty);ctx.lineTo(tx,ty+cell*.18*open);ctx.lineTo(tx+cell*.075,ty);ctx.closePath();ctx.fill();
+    }
+    for(let i=-2;i<=2;i++){
+      const tx=cell*(i*.27), ty=cell*(.57+.05*Math.abs(i));
+      ctx.beginPath();ctx.moveTo(tx-cell*.065,ty);ctx.lineTo(tx,ty-cell*.15*open);ctx.lineTo(tx+cell*.065,ty);ctx.closePath();ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
+  // ball
+  const bx=(ball.c+.5)*cell,by=(ball.r+.5)*cell;
+  const rb=cell*.34;
+  const bg=ctx.createRadialGradient(bx-rb*.35,by-rb*.45,2,bx,by,rb);
+  bg.addColorStop(0,"#ff9a9a");bg.addColorStop(.35,"#ff3b30");bg.addColorStop(1,"#b30e18");
+  ctx.fillStyle=bg;ctx.beginPath();ctx.arc(bx,by,rb,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle="#7b0910";ctx.lineWidth=2;ctx.stroke();
+  // hint path
+  if(path.length && hintTimer){
+    ctx.save();ctx.strokeStyle="#fff";ctx.lineWidth=Math.max(3,cell*.13);ctx.lineCap="round";ctx.setLineDash([cell*.25,cell*.18]);
+    ctx.shadowColor="#65ff42";ctx.shadowBlur=12;ctx.beginPath();
+    path.forEach((p,i)=>{const x=(p.c+.5)*cell,y=(p.r+.5)*cell;i?ctx.lineTo(x,y):ctx.moveTo(x,y)});
+    ctx.stroke();ctx.restore();
+  }
+}
+function move(dr,dc){
+  if(!gameActive)return;
+  const nr=ball.r+dr,nc=ball.c+dc;
+  if(nr<0||nr>=grid.length||nc<0||nc>=grid.length||grid[nr][nc]===1){
+    playTone(120,.05); return;
+  }
+  ball={r:nr,c:nc}; playTone(520,.035); draw();
+  if(ball.r===goal.r&&ball.c===goal.c) win();
+}
+function loseLife(reason){
+  if(!gameActive)return;
+  lives--; playTone(160,.12); updateUI();
+  if(lives<=0){gameActive=false;clearInterval(timer);showResult(false,t().needLives,0)}
+  else {toast(reason+" "+t().tryAgain); buildLevel();}
+}
+function win(){
+  if(!gameActive || victoryAnimating)return;
+  gameActive=false;clearInterval(timer);victoryAnimating=true;
+  const gained=50+timeLeft*5+levelIndex*10;
+  const n=grid.length, size=canvas.width, cell=size/n;
+  const startX=(ball.c+.5)*cell,startY=(ball.r+.5)*cell;
+  const endX=(goal.c+.05)*cell,endY=(goal.r+.28)*cell;
+  const start=performance.now(), duration=720;
+  crocoMouth=1;
+
+  function animate(now){
+    const p=Math.min(1,(now-start)/duration);
+    const ease=1-Math.pow(1-p,3);
+    crocoMouth=Math.min(1, p<.22 ? p/.22 : p<.72 ? 1 : 1-(p-.72)/.28);
+    draw();
+    const x=startX+(endX-startX)*ease;
+    const y=startY+(endY-startY)*ease;
+    ctx.save();
+    const scale=1-.72*Math.max(0,(p-.68)/.32);
+    ctx.translate(x,y);ctx.scale(scale,scale);
+    const rb=cell*.34;
+    const bg=ctx.createRadialGradient(-rb*.35,-rb*.45,2,0,0,rb);
+    bg.addColorStop(0,"#ffb0b0");bg.addColorStop(.35,"#ff3b30");bg.addColorStop(1,"#b30e18");
+    ctx.fillStyle=bg;ctx.beginPath();ctx.arc(0,0,rb,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle="#7b0910";ctx.lineWidth=2;ctx.stroke();ctx.restore();
+
+    if(p<1){requestAnimationFrame(animate);return}
+    victoryAnimating=false;
+    totalXP+=gained; totalScore+=gained;
+    localStorage.setItem("yosraMazeXP",totalXP);localStorage.setItem("yosraMazeScore",totalScore);
+    playWin();
+    if(lang==="en") setTimeout(()=>speakText("Great job! Level complete. Croco is happy!"),180);
+    showResult(true,t().win,gained);
+    updateUI();
+  }
+  requestAnimationFrame(animate);
+}
+function showResult(ok,text,gained){
+  document.getElementById("resultEmoji").textContent=ok?"🎉":"😅";
+  document.getElementById("resultTitle").textContent=ok?t().complete:t().fail;
+  document.getElementById("resultText").textContent=text;
+  document.getElementById("resultScore").textContent=gained;
+  document.getElementById("resultXP").textContent=ok?gained:0;
+  document.getElementById("nextBtn").style.display=ok?"block":"none";
+  document.getElementById("overlay").classList.add("show");
+}
+function toast(msg){
+  const el=document.getElementById("toast");el.textContent=msg;el.classList.add("show");
+  setTimeout(()=>el.classList.remove("show"),1800);
+}
+function playTone(freq,dur){
+  if(!soundOn)return;
+  try{
+    audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.frequency.value=freq;o.type="sine";g.gain.value=.045;o.connect(g);g.connect(audioCtx.destination);
+    o.start();o.stop(audioCtx.currentTime+dur);
+  }catch(e){}
+}
+function playWin(){
+  if(!soundOn)return;
+  const notes=[523,659,784,1046,784,1046,1319];
+  notes.forEach((f,i)=>setTimeout(()=>playTone(f,.16),i*115));
+  setTimeout(()=>playTone(1568,.32),notes.length*115);
+}
+function showGame(){document.getElementById("startScreen").classList.remove("active");document.getElementById("gameScreen").classList.add("active");buildLevel()}
+function showMenu(){clearInterval(timer);gameActive=false;document.getElementById("overlay").classList.remove("show");document.getElementById("gameScreen").classList.remove("active");document.getElementById("startScreen").classList.add("active")}
+function nextLevel(){
+  document.getElementById("overlay").classList.remove("show");
+  if(levelIndex<levels.length-1){levelIndex++;localStorage.setItem("yosraMazeLevel",levelIndex);buildLevel()}
+  else{levelIndex=0;localStorage.setItem("yosraMazeLevel",0);showMenu();toast("🏆 CROCO MASTER!")}
+}
+let pointerDown=false,lastX=0,lastY=0,dragAccumX=0,dragAccumY=0;
+canvas.addEventListener("pointerdown",e=>{
+  if(!gameActive)return;
+  pointerDown=true;lastX=e.clientX;lastY=e.clientY;dragAccumX=0;dragAccumY=0;
+  canvas.setPointerCapture?.(e.pointerId);
+});
+canvas.addEventListener("pointermove",e=>{
+  if(!pointerDown||!gameActive)return;
+  const dx=e.clientX-lastX,dy=e.clientY-lastY;
+  dragAccumX+=dx;dragAccumY+=dy;lastX=e.clientX;lastY=e.clientY;
+  const step=Math.max(8,canvas.clientWidth/grid.length*.48);
+  while(Math.abs(dragAccumX)>=step || Math.abs(dragAccumY)>=step){
+    if(Math.abs(dragAccumX)>=Math.abs(dragAccumY)){
+      const dir=dragAccumX>0?1:-1; move(0,dir); dragAccumX-=dir*step;
+    }else{
+      const dir=dragAccumY>0?1:-1; move(dir,0); dragAccumY-=dir*step;
+    }
+    if(!gameActive)break;
+  }
+});
+canvas.addEventListener("pointerup",()=>{pointerDown=false;dragAccumX=dragAccumY=0});
+canvas.addEventListener("pointercancel",()=>{pointerDown=false;dragAccumX=dragAccumY=0});
+document.getElementById("playBtn").onclick=()=>showGame();
+document.getElementById("restartBtn").onclick=()=>{playTone(300,.06);buildLevel()};
+document.getElementById("hintBtn").onclick=()=>{
+  clearTimeout(hintTimer);hintTimer=true;draw();toast(t().toastHint);
+  hintTimer=setTimeout(()=>{hintTimer=null;draw()},2200);
+};
+document.getElementById("soundBtn").onclick=()=>{soundOn=!soundOn;applyLanguage();if(soundOn)playTone(700,.08)};
+document.getElementById("listenBtn").onclick=()=>{
+  const text=document.getElementById("instruction").textContent.replace(/^🐊\s*/,"").trim();
+  speakText(text);
+};
+document.getElementById("nextBtn").onclick=nextLevel;
+document.getElementById("menuBtn").onclick=showMenu;
+window.addEventListener("resize",()=>{if(gameActive)draw()});
+applyLanguage();
+})();
+</script>
+</body>
+</html>
